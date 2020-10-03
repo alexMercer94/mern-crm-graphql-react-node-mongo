@@ -11,7 +11,9 @@
     "author": "Alejandro Cruz Valera",
     "license": "ISC",
     "dependencies": {
-        "apollo-server": "^2.18.1"
+        "apollo-server": "^2.18.1",
+        "dotenv": "^8.2.0",
+        "mongoose": "^5.10.7"
     },
     "devDependencies": {
         "nodemon": "^2.0.4"
