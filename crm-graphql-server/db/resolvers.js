@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Product = require('../models/Product');
 const bcrytpjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: 'variables.env' });
@@ -24,6 +25,30 @@ const resolvers = {
         getUser: async (_, { token }) => {
             const userId = await jwt.verify(token, process.env.SECRET);
             return userId;
+        },
+        /**
+         * Get all products
+         */
+        getProducts: async () => {
+            try {
+                const products = await Product.find({});
+                return products;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        /**
+         * Get a specific product
+         */
+        getProduct: async (_, { id }) => {
+            // Check if product exist
+            const product = await Product.findById(id);
+
+            if (!product) {
+                throw new Error('Producto no encontrado.');
+            }
+
+            return product;
         },
     },
     Mutation: {
@@ -74,6 +99,50 @@ const resolvers = {
             return {
                 token: createToken(userExist, process.env.SECRET, '24h'),
             };
+        },
+        /**
+         * Create a new product
+         */
+        newProduct: async (_, { input }) => {
+            try {
+                const product = new Product(input);
+                // Save in db
+                const result = await product.save();
+                return result;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        /**
+         * Uptate a specific product data
+         */
+        updateProduct: async (_, { id, input }) => {
+            // Check if product exist
+            let product = await Product.findById(id);
+
+            if (!product) {
+                throw new Error('Producto no encontrado.');
+            }
+
+            // Save in db
+            product = await Product.findOneAndUpdate({ _id: id }, input, { new: true });
+
+            return product;
+        },
+        /**
+         * Delete a specific product
+         */
+        deleteProduct: async (_, { id }) => {
+            // Check if product exist
+            const product = await Product.findById(id);
+
+            if (!product) {
+                throw new Error('Producto no encontrado.');
+            }
+
+            await Product.findByIdAndDelete({ _id: id });
+
+            return 'Producto eliminado correctamente.';
         },
     },
 };
