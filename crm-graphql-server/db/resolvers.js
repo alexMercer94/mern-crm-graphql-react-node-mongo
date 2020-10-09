@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Client = require('../models/Client');
+const Order = require('../models/Order');
 const bcrytpjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: 'variables.env' });
@@ -89,6 +90,127 @@ const resolvers = {
             }
 
             return client;
+        },
+        /**
+         * Get all orders
+         */
+        getOrders: async () => {
+            try {
+                const orders = Order.find({});
+                return orders;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        /**
+         * Get orders by seller
+         */
+        getOrdersSeller: async (_, {}, ctx) => {
+            try {
+                const orders = Order.find({ seller: ctx.user.id });
+                return orders;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        /**
+         * Get an order
+         */
+        getOrder: async (_, { id }, ctx) => {
+            //If order exist
+            const order = await Order.findById(id);
+            if (!order) {
+                throw new Error('Pedido no encontrado.');
+            }
+
+            // Only who creates order can see it
+            if (order.seller.toString() !== ctx.user.id) {
+                throw new Error('No tienes las credenciales');
+            }
+
+            // Return result
+            return order;
+        },
+        /**
+         * Get all order by an state
+         */
+        getOrdersState: async (_, { state }, ctx) => {
+            const orders = await Order.find({ seller: ctx.user.id, state });
+            return orders;
+        },
+        /**
+         * Gety best clients
+         */
+        getBestClients: async () => {
+            const clients = await Order.aggregate([
+                { $match: { state: 'COMPLETADO' } },
+                {
+                    $group: {
+                        _id: '$client',
+                        total: { $sum: '$total' },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'clients',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'client',
+                    },
+                },
+                {
+                    $limit: 10,
+                },
+                {
+                    $sort: {
+                        total: -1,
+                    },
+                },
+            ]);
+
+            return clients;
+        },
+        /**
+         * Get best seller
+         */
+        getBestSellers: async () => {
+            const sellers = await Order.aggregate([
+                {
+                    $match: { state: 'COMPLETADO' },
+                },
+                {
+                    $group: {
+                        _id: '$seller',
+                        total: { $sum: '$total' },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'seller',
+                    },
+                },
+                {
+                    $limit: 3,
+                },
+                {
+                    $sort: {
+                        total: -1,
+                    },
+                },
+            ]);
+
+            return sellers;
+        },
+        /**
+         * Search products by string
+         */
+        searchProduct: async (_, { text }) => {
+            const products = await Product.find({ $text: { $search: text } }).limit(10);
+
+            return products;
         },
     },
     Mutation: {
@@ -228,8 +350,11 @@ const resolvers = {
 
             return client;
         },
+        /**
+         * Delete a client
+         */
         deleteClient: async (_, { id }, ctx) => {
-            // Verify if exist
+            // Verify if cliente exist
             const client = await Client.findById(id);
 
             if (!client) {
@@ -244,6 +369,111 @@ const resolvers = {
             // Delete client
             await Client.findOneAndDelete({ _id: id });
             return 'Cliente eliminado.';
+        },
+        /**
+         * Create a new order
+         */
+        newOrder: async (_, { input }, ctx) => {
+            // Verify if cliente exist
+            const { client } = input;
+            let existClient = await Client.findById(client);
+
+            if (!existClient) {
+                throw new Error('El cliente no existe.');
+            }
+
+            // Verify if client is the selle's client
+            if (existClient.seller.toString() !== ctx.user.id) {
+                throw new Error('No tienes las credenciales');
+            }
+
+            // Verify if stock is available
+            for await (const article of input.order) {
+                const { id } = article;
+                const product = await Product.findById(id);
+
+                if (article.quantity > product.existence) {
+                    throw new Error(`El articulo ${product.name} exede la cantidad disponible.`);
+                } else {
+                    // Restar la cantidad al stock del producto disponible
+                    product.existence = product.existence - article.quantity;
+                    await product.save();
+                }
+            }
+
+            // Create new order
+            const newOrder = new Order(input);
+
+            // Assign seller
+            newOrder.seller = ctx.user.id;
+
+            // Save in db
+            const result = await newOrder.save();
+            return result;
+        },
+        /**
+         * Update an order
+         */
+        updateOrder: async (_, { id, input }, ctx) => {
+            const { client } = input;
+
+            // Verify if order exist
+            const orderExist = await Order.findById(id);
+
+            if (!orderExist) {
+                throw new Error('El pedido no existe.');
+            }
+
+            // Check if client exist
+            const clientExist = await Client.findById(client);
+            if (!orderExist) {
+                throw new Error('El cliente no existe.');
+            }
+
+            // Check if client & order belongs to seller
+            if (clientExist.seller.toString() !== ctx.user.id) {
+                throw new Error('No tienes las credenciales');
+            }
+
+            // Check stock
+            if (input.order) {
+                for await (const article of input.order) {
+                    const { id } = article;
+                    const product = await Product.findById(id);
+
+                    if (article.quantity > product.existence) {
+                        throw new Error(`El articulo ${product.name} exede la cantidad disponible.`);
+                    } else {
+                        // Restar la cantidad al stock del producto disponible
+                        product.existence = product.existence - article.quantity;
+                        await product.save();
+                    }
+                }
+            }
+
+            // Save order
+            const result = await Order.findOneAndUpdate({ _id: id }, input, { new: true });
+            return result;
+        },
+        /**
+         * Delete an order
+         */
+        deleteOrder: async (_, { id }, ctx) => {
+            // Verify if order exist
+            const order = await Order.findById(id);
+
+            if (!order) {
+                throw new Error('El pedido no existe.');
+            }
+
+            // Verify if seller  is who deletes
+            if (order.seller.toString() !== ctx.user.id) {
+                throw new Error('No tienes las credenciales');
+            }
+
+            // Delete order
+            await Order.findOneAndDelete({ _id: id });
+            return 'Pedido eliminado.';
         },
     },
 };

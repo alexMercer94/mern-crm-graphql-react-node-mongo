@@ -29,6 +29,25 @@ const typeDefs = gql`
         phone: String
     }
 
+    input ProductOrderInput {
+        id: ID
+        quantity: Int
+    }
+
+    input OrderInput {
+        order: [ProductOrderInput]
+        total: Float
+        client: ID
+        state: OrderState
+    }
+
+    #Enums
+    enum OrderState {
+        PENDIENTE
+        COMPLETADO
+        CANCELADO
+    }
+
     # Types
     type User {
         id: ID
@@ -61,6 +80,31 @@ const typeDefs = gql`
         seller: ID
     }
 
+    type Order {
+        id: ID
+        order: [OrderGroup]
+        total: Float
+        client: ID
+        seller: ID
+        createdAt: String
+        state: OrderState
+    }
+
+    type OrderGroup {
+        id: ID
+        quantity: Int
+    }
+
+    type TopClient {
+        total: Float
+        client: [Client]
+    }
+
+    type TopSeller {
+        total: Float
+        seller: [User]
+    }
+
     # Queries
     type Query {
         # Users
@@ -70,10 +114,21 @@ const typeDefs = gql`
         getProducts: [Product]
         getProduct(id: ID!): Product
 
-        #Clients
+        # Clients
         getClients: [Client]
         getClientsSeller: [Client]
         getClient(id: ID!): Client
+
+        # Orders
+        getOrders: [Order]
+        getOrdersSeller: [Order]
+        getOrder(id: ID!): Order
+        getOrdersState(state: String!): [Order]
+
+        # Anvanced searches
+        getBestClients: [TopClient]
+        getBestSellers: [TopSeller]
+        searchProduct(text: String!): [Product]
     }
 
     # Mutations
@@ -91,6 +146,11 @@ const typeDefs = gql`
         newClient(input: ClientInput): Client
         updateClient(id: ID!, input: ClientInput): Client
         deleteClient(id: ID!): String
+
+        # Orders
+        newOrder(input: OrderInput): Order
+        updateOrder(id: ID!, input: OrderInput): Order
+        deleteOrder(id: ID!): String
     }
 `;
 
