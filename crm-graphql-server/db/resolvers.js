@@ -222,7 +222,6 @@ const resolvers = {
 
             // Check if user is registered
             const existUser = await User.findOne({ email });
-            console.log(existUser);
             if (existUser) {
                 throw new Error('El usuario ya esta registrado');
             }
