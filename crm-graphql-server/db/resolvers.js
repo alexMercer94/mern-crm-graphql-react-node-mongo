@@ -24,9 +24,8 @@ const resolvers = {
         /**
          * Get user autenticated and check JWT
          */
-        getUser: async (_, { token }) => {
-            const userId = await jwt.verify(token, process.env.SECRET);
-            return userId;
+        getUser: async (_, {}, ctx) => {
+            return ctx.user;
         },
         /**
          * Get all products
