@@ -46,7 +46,6 @@ const Login = () => {
                     },
                 });
 
-                console.log(data);
                 setMessage('Autenticando...');
                 const { token } = data.autenticateUser;
                 localStorage.setItem('token', token);
