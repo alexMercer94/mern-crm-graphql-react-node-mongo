@@ -57,6 +57,10 @@ const EditProduct = () => {
         return 'Acción no permitida';
     }
 
+    /**
+     * Function in order to update product
+     * @param {*} values
+     */
     const handleSubmit = async (values) => {
         const { name, existence, price } = values;
 

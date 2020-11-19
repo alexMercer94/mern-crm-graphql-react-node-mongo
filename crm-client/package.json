@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.2.3",
+    "add": "^2.0.6",
     "apollo-link-context": "^1.0.20",
     "formik": "^2.2.0",
     "graphql": "^15.3.0",
@@ -16,7 +17,10 @@
     "node-fetch": "^2.6.1",
     "react": "16.13.1",
     "react-dom": "16.13.1",
+    "react-select": "^3.1.0",
+    "recharts": "^1.8.5",
     "sweetalert2": "^10.10.0",
+    "yarn": "^1.22.10",
     "yup": "^0.29.3"
   }
 }

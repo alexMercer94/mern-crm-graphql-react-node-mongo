@@ -47,8 +47,10 @@ const Login = () => {
                 });
 
                 setMessage('Autenticando...');
-                const { token } = data.autenticateUser;
-                localStorage.setItem('token', token);
+                setTimeout(() => {
+                    const { token } = data.autenticateUser;
+                    localStorage.setItem('token', token);
+                }, 1000);
 
                 setTimeout(() => {
                     setMessage(null);
